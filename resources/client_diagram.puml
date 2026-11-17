@@ -1,0 +1,56 @@
+@startuml
+== Просмотр заведений ==
+Client -> API: GET /restaurants
+API -> DB: Query (фильтр по категории и рейтингу)
+DB --> API: Список доступных заведений
+API --> Client: 200 OK (JSON, список заведений)
+
+== Просмотр меню заведения ==
+Client -> API: GET /restaurants/{id}/menu
+API -> DB: Query (фильтр по in_stock = true)
+DB --> API: Список блюд с ценами и наличием
+API --> Client: 200 OK (JSON, список блюд с ценами и наличием)
+
+== Добавление товаров в корзину ==
+Client -> API: POST /cart/items
+API -> DB: Query (сравнение, находятся ли блюда в одном ресторане)
+alt Разные рестораны
+API --> Client: 409 Conflict (нельзя добавить в корзину блюда из разных ресторанов)
+else Один ресторан
+API -> DB: Добавить блюдо в корзину
+API --> Client: 200 OK
+end
+
+== Просмотр корзины ==
+Client -> API: GET /cart
+API -> DB: Query (получение всех блюд в корзине)
+DB --> API: Список всех блюд в корзине
+API --> Client: 200 OK (JSON, список блюд с флагом in_stock)
+
+== Оформление заказа ==
+Client -> API: POST /orders
+API -> DB: Query (проверка зоны доставки и проверка in_stock всех блюд)
+alt Адрес вне зоны доставки или есть блюдо с in_stock = false
+alt Адрес вне зоны доставки
+API --> Client: 400 Bad Request (Адрес вне зоны доставки)
+else Есть блюда с in_stock = false
+API --> Client: 400 Bad Request (Одного из блюда нет в наличии)
+end
+else Валидация успешна
+API -> DB: Создание заказа + сохранение в order_items
+API --> Client: 201 Created (JSON order_id)
+end
+
+== Отмена заказа==
+Client -> API: POST /orders/{id}/cancel
+API -> DB: Query (получение текущего заказа)
+DB --> API: Информация о заказе
+alt Заказ находится в статусе new, accepted или in_process
+API -> DB: установка статуса cancelled на заказ
+API --> Client: 200 OK
+else Заказ не находится в статусе new, accepted или in_process
+API --> Client: 400 Bad Request (невозможно отменить заказ)
+end
+
+
+@enduml
