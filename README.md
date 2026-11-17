@@ -133,3 +133,13 @@
 Возможна проблема, когда пользователь отменил заказ, но ресторан продолжает его видеть как оформленный.
 Для этого нужно проверять состояние заказа.
  
+
+## Стек
+- Язык программирования: C#, .NET9.0
+- Фреймворк Web API: ASP.NET
+- Архитектура: Clean Architecture, паттерн CQRS с использованием MediatR
+- База данных: PostgreSQL
+- ORM: EntityFramework Core
+- Инфраструктура: Docker, Docker Compose
+- Тестирование: xUnit + Moq
+- Документация API: [Scalar](https://scalar.com/docs-for/dotnet)
