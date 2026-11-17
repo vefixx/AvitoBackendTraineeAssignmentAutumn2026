@@ -74,7 +74,10 @@
 Проблема может возникнуть, когда пользователь попытается отменить заказ, который уже доставлен.
 В таком случае проверим, что статус заказа находится в new, accepted или in_process.
 
-![PlanUML диаграмма](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/vefixx/AvitoBackendTraineeAssignmentAutumn2026/refs/heads/master/resources/client_diagram.puml)
+---
+
+#### UML Диаграмма CJM пользователя:
+![UML диаграмма](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/vefixx/AvitoBackendTraineeAssignmentAutumn2026/refs/heads/master/resources/client_diagram.puml)
 
 ## CJM для заведения
 ### Просмотр меню
