@@ -563,5 +563,7 @@ fabric.properties
 
 .env
 config/
+obj/
+bin/
 
 # End of https://www.toptal.com/developers/gitignore/api/csharp,rider,jetbrains
