@@ -32,7 +32,7 @@
 
 Пользователь может столкнуться с ситуацией, когда он попробует добавить блюда из разных ресторанов.
 Добавим правило, что в заказе можно иметь блюда только из одного и того же ресторана.
-Если он хочет добавить блюдо из другого ресторана, то сделаем две разные корзины для ресторана A, ресторана B и т.д.
+Если он хочет добавить блюдо из другого ресторана, то сделаем разные корзины для ресторана A, ресторана B и т.д.
 
 ### Просмотр корзины
 Пользователь может просмотреть свою корзину. 
@@ -70,6 +70,11 @@
 
 Связь с сервером через `POST /orders/{id}/cancel`.
 
+
+Проблема может возникнуть, когда пользователь попытается отменить заказ, который уже доставлен.
+В таком случае проверим, что статус заказа находится в new, accepted или in_process.
+
+![PlanUML диаграмма пользователя](//www.plantuml.com/plantuml/dpng/hLPVJpj557tVJt4VQOIq6byagK7063KH5D_9PZiaZMMBsssCCIQbfQY1W34OVKBv1alfsbBQ-XNkV2FFp3Xa_sp9yiilQNVfpDnxpvmvvmvRdT0DmkvnowdNYV-IFLxAKvxZsPSzuWb7FEAOn_WkUCgFLAyxEwscy4FQ-90-slzqapxv-6kg1WA9ke7hXnq7esfoTtkJlkoAu7jQasU8VPAN9kc_l2IUSIJxoFg0KZtCJWaVsSF88yQdgFOW1nLdTvisR26-G-WKy9Oy8q02KYGSO70XB-Im0As1WdW3UPFUgzLextDQ--nWxujragU9XFdeYbDCobmja5Uv27bTWftg3yt6ZzLZuNTByTJq3pjXs_k6wXG6NV4I8VU8lE8nTaNoN2EAU6vurNy_OUbFFCNCl1mlhyzh6ECR1DuhRZ1dk8m9Xxh4G0GoyIRrcUcZdwZ3beC2wlRt3i2T1trMcw4uBXJMgUpfGWjRQ5s3aaDK6SjhsSUAQr8OdpV2aQwEULxWETUgKrBIS2ALgkAuhP3uR_oQA75nd5s4mHo9xzS-e9ssVzHgUY6jQKWuIvu006fPIgR0T9dVVn8UHYOeQAlBOHuYEAmuejKHnBU8GOhScYHTV9EjRwijyr1MgCCHVgFG4UdmYs8Jc8CiE48bSs0PG4DMApn2yXZRjYYp63bUROGoqM-i_pCeAU87BHjhJIDwliMaAZ5FY5vtY1c-UAyKU3jeYA1Jo8mn2yTu8ujAjzGCs-Qd3tHcl9XRRV7b2J7ovbzvR3H3na0lvZSMmkAiV12UQ597BZJvslG5JghHjjkWhyItNT5HPYgVpDhYzopKg0XgYTAtfb6eKpVEJ6HKK6GVcDAjK860MGoGtyo4MY_FzIqX1qfXYFnPHQLyUeT24xMqI47laDAa71f_9-n2MaE7falcjVqkxGJ23KN32DokRcYKLhrzSwznbAhvicZDPUQvlYTQvQojx_mPXdunTt-gMCRKV_B2UkgPkdH4R9JsXnr8z7wUsju_8YCF_0RlmE2BxzR9zJnn0agij26Caw3jYKxAYOX0hEsugaWwMKHcyoqaod2tiej251d8yLl1NKBAIZCZhR0vdl-eNO5HU_JcQaXiuNzzE5jugNyH_mC0)
 
 ## CJM для заведения
 ### Просмотр меню
@@ -126,13 +131,14 @@
 Если время прошло, то заказ автоматически отменяется.
 
 ### Обновление статуса заказа
-Заведение изменяет статус заказа. Оно может изменить его на `accept` -> `in_process` -> `ready`.
+Заведение изменяет статус заказа. Оно может изменить его на `accepted` -> `in_process` -> `ready`.
 
 Связь с сервером `PATCH /admin/restaurants/{id}/orders/{order_id}/status`.
 
 Возможна проблема, когда пользователь отменил заказ, но ресторан продолжает его видеть как оформленный.
 Для этого нужно проверять состояние заказа.
- 
+
+
 
 ## Стек
 - Язык программирования: C#, .NET9.0
