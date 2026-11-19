@@ -1,0 +1,70 @@
+﻿@startuml
+participant Restaurant as Rest
+
+== Просмотр меню ==
+Rest -> API: GET /admin/restaurants/{id}/menu?category=
+API -> DB: Query SELECT
+DB --> API: Список блюд в ресторане (название, цена, описание)
+API --> Rest: 200 OK (список блюд с названием, ценой и описанием)
+
+== Управление меню (добавление блюда) ==
+Rest -> API: POST /admin/restaurants/{id}/dishes
+alt Корректные данные
+API -> DB: Query INSERT
+API --> Rest: 201 Created
+else Некорректные данные
+API --> Rest: 400 Bad Request
+end
+
+== Управление меню (изменение блюда) == 
+Rest -> API: PATCH /admin/restaurants/{id}/dishes/{dish_id}
+alt Корректные данные
+API -> DB: Query UPDATE
+API --> Rest: 200 OK
+else Некорректные данные
+API --> Rest: 400 Bad Request
+end
+
+== Удаление блюда ==
+Rest -> API: DELETE /admin/restaurants/{id}/dishes/{dish_id}
+alt Корректные данные
+API -> DB: Query DELETE
+API --> Rest: 200 OK
+else Некорректные данные
+API --> Rest: 400 Bad Request
+end
+
+== Обработка заказа (принять) ==
+Rest -> API: POST /admin/restaurants/{id}/orders/{order_id}/accept
+API -> DB: Query SELECT order
+DB --> API: Order | None
+alt Заказ != None И Статус заказа == new
+API -> DB: UPDATE order.status = accepted
+API --> Rest: 200 OK
+else Заказ == None ИЛИ статус заказа != new
+API --> Rest: 409 Conflict (с текстом ошибки)
+end
+
+== Обработка заказа (отклонить) ==
+Rest -> API: POST /admin/restaurants/{id}/orders/{order_id}/cancel
+API -> DB: Query SELECT order
+DB --> API: Order | None
+alt Заказ != None И Статус заказа == new
+API -> DB: UPDATE order.status = cancelled
+API --> Rest: 200 OK
+else Заказ == None ИЛИ статус заказа != new
+API --> Rest: 409 Conflict (с текстом ошибки)
+end
+
+== Обновление статуса заказа ==
+Rest -> API: PATCH /admin/restaurants/{id}/orders/{order_id}/status
+alt Новый статус == in_process И Старый статус == accepted
+API -> DB: Query UPDATE status = in_process
+API --> Rest: 200 OK
+else Новый статус == ready И Старый статус == in_process
+API -> DB: Query UPDATE status = ready
+API --> Rest: 200 OK
+else Иначе
+API --> Rest: 400 Bad Request
+end
+@enduml
