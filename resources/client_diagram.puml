@@ -1,56 +1,98 @@
 @startuml
-== Просмотр заведений ==
+== Поиск заведений ==
 Client -> API: GET /restaurants
-API -> DB: Query (фильтр по категории и рейтингу)
-DB --> API: Список доступных заведений
-API --> Client: 200 OK (JSON, список заведений)
+API -> DB: SELECT restaurants
+DB --> API: Список заведений (ID, название)
+API --> Client: 200 OK: Список заведений (ID, название)
 
-== Просмотр меню заведения ==
+== Просмотр меню заведения (список блюд) ==
 Client -> API: GET /restaurants/{id}/menu
-API -> DB: Query (фильтр по in_stock = true)
-DB --> API: Список блюд с ценами и наличием
-API --> Client: 200 OK (JSON, список блюд с ценами и наличием)
+API -> DB: SELECT dishes WHERE restaurant_id = id
+DB --> API: Список блюд (ID, название, наличие, цена)
+API --> Client: 200 OK: Список блюд (ID, название, наличие, цена)
 
-== Добавление товаров в корзину ==
-Client -> API: POST /cart/items
-API -> DB: Query (сравнение, находятся ли блюда в одном ресторане)
-alt Разные рестораны
-API --> Client: 409 Conflict (нельзя добавить в корзину блюда из разных ресторанов)
-else Один ресторан
-API -> DB: Добавить блюдо в корзину
-API --> Client: 200 OK
+== Просмотр информации о блюде ==
+Client -> API: GET /restaurants/{id}/dishes/{dish_id}
+API -> DB: SELECT dish WHERE restaurant_id = id AND dish_id = dish_id
+DB --> API: Блюдо или пустой результат
+alt Блюдо найдено
+    API --> Client: 200 OK: Блюдо (ID, название, описание, состав, наличие, цена)
+else Блюдо удалено
+    API --> Client: 404 Not Found
+end
+
+== Добавление блюда в заказ ==
+Client -> API: POST /cart/items (ID заведения, ID блюда, список модификаторов)
+API -> DB: SELECT order_items (restaurant_id позиций корзины)
+DB --> API: Текущие позиции корзины
+alt Корзина не пуста и ID заведения не совпадает
+    API --> Client: 409 Conflict (Нельзя добавить блюда из разных ресторанов)
+else Корзина пуста или ID заведения совпадает
+    API -> DB: INSERT INTO order_items (restaurant_id, dish_id, модификаторы, количество)
+    API -> DB: SELECT COUNT(order_items)
+    DB --> API: Новое количество блюд в корзине
+    API --> Client: 200 OK: Новое количество блюд в корзине
 end
 
 == Просмотр корзины ==
-Client -> API: GET /cart
-API -> DB: Query (получение всех блюд в корзине)
-DB --> API: Список всех блюд в корзине
-API --> Client: 200 OK (JSON, список блюд с флагом in_stock)
+Client -> API: GET /cart/items
+API -> DB: SELECT order_items
+DB --> API: Список позиций (ID, название при добавлении, модификаторы, количество)
+API -> DB: SELECT dishes WHERE id IN (ID блюд корзины)
+DB --> API: Актуальные данные блюд (наличие, цена)
+loop Для каждой позиции корзины
+    API -> API: Сверка актуального наличия блюда
+    note right of API: Удалённые/недоступные блюда\nпомечаются как недоступные
+end
+API --> Client: 200 OK: Список блюд (ID, название при добавлении, модификаторы,\nколичество, актуальное наличие)
+
+== Изменение корзины (удаление блюда) ==
+Client -> API: DELETE /cart/items/{item_id}
+API -> DB: DELETE FROM order_items WHERE item_id = item_id
+DB --> API: OK
+API --> Client: 204 No Content
+
+== Изменение корзины (изменение количества блюда) ==
+Client -> API: PATCH /cart/items/{item_id} (новое количество)
+alt Количество > 0
+    API -> DB: UPDATE order_items SET quantity = quantity WHERE item_id = item_id
+    DB --> API: OK
+    API --> Client: 200 OK: Позиция с новым количеством
+else Количество <= 0
+    API -> DB: DELETE FROM order_items WHERE item_id = item_id
+    DB --> API: OK
+    API --> Client: 204 No Content (позиция удалена из корзины)
+end
 
 == Оформление заказа ==
-Client -> API: POST /orders
-API -> DB: Query (проверка зоны доставки и проверка in_stock всех блюд)
-alt Адрес вне зоны доставки или есть блюдо с in_stock = false
+Client -> API: POST /orders (адрес доставки, способ оплаты)
+API -> DB: SELECT order_items, зоны доставки заведения
+DB --> API: Позиции корзины, зоны доставки заведения
+API -> API: Проверка: адрес входит в зону доставки заведения
 alt Адрес вне зоны доставки
-API --> Client: 400 Bad Request (Адрес вне зоны доставки)
-else Есть блюда с in_stock = false
-API --> Client: 400 Bad Request (Одного из блюда нет в наличии)
-end
-else Валидация успешна
-API -> DB: Создание заказа + сохранение в order_items
-API --> Client: 201 Created (JSON order_id)
+    API --> Client: 422 Unprocessable Entity (Адрес вне зоны доставки заведения)
+else Адрес в зоне доставки
+    API -> DB: INSERT INTO orders (адрес, способ оплаты, status = new)
+    API -> DB: Перенос order_items в состав заказа, очистка корзины
+    DB --> API: ID заказа
+    API --> Client: 201 Created: Заказ (ID, статус new)
 end
 
-== Отмена заказа==
+== Отмена заказа ==
 Client -> API: POST /orders/{id}/cancel
-API -> DB: Query (получение текущего заказа)
-DB --> API: Информация о заказе
-alt Заказ находится в статусе new, accepted или in_process
-API -> DB: установка статуса cancelled на заказ
-API --> Client: 200 OK
-else Заказ не находится в статусе new, accepted или in_process
-API --> Client: 400 Bad Request (невозможно отменить заказ)
+API -> DB: SELECT status FROM orders WHERE id = id
+DB --> API: Статус заказа
+alt Статус IN (new, accepted, in_process)
+    API -> DB: UPDATE orders SET status = cancelled WHERE id = id
+    DB --> API: OK
+    API --> Client: 200 OK: Заказ отменён (cancelled)
+else Заказ уже доставлен или отменён
+    API --> Client: 409 Conflict (Отмена невозможна в текущем статусе)
 end
 
-
+== Просмотр статуса заказа ==
+Client -> API: GET /orders/{id}/status
+API -> DB: SELECT status FROM orders WHERE id = id
+DB --> API: Статус заказа
+API --> Client: 200 OK: Статус заказа
 @enduml
